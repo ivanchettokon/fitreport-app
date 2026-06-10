@@ -589,7 +589,7 @@ async function send(){
   fd.append('foodPhoto', fpFile);
 
   try {
-    const res = await fetch('https://https://fitreport-server.onrender.com/report', {method:'POST', body:fd});
+    const res = await fetch('https://fitreport-server.onrender.com/report', {method:'POST', body:fd});
     if(res.ok){
       document.getElementById('reportForm').style.display='none';
       document.getElementById('okBanner').style.display='block';
