@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FitReport</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#4F8EF7;--blue-light:#EBF2FF;
+  --orange:#F7A34F;--orange-light:#FFF4E8;
+  --green:#4FC97F;--green-light:#E8FFF1;
+  --text:#1A1A2E;--muted:#7B7B9A;
+  --bg:#F5F5FA;--card:#FFFFFF;--border:#EBEBF5;
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+
+/* NAV */
+.tabs{position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);display:flex;z-index:99;padding-top:env(safe-area-inset-top)}
+.tab-btn{flex:1;padding:14px 4px 10px;background:none;border:none;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .15s}
+.tab-btn span.ico{font-size:20px}
+.tab-btn.active{color:var(--blue)}
+
+/* CONTENT */
+.page{display:none;padding:72px 16px 32px;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+h1{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.sub{font-size:13px;color:var(--muted);margin-top:2px;margin-bottom:18px}
+
+/* RULE BANNER */
+.rules{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.rules span{font-size:13px}.rules .div{width:1px;height:28px;background:var(--border);flex-shrink:0}
+
+/* MACRO */
+.macro{margin-bottom:22px}
+.macro-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.letter{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex-shrink:0}
+.p .letter{background:var(--blue-light);color:var(--blue)}
+.f .letter{background:var(--orange-light);color:var(--orange)}
+.c .letter{background:var(--green-light);color:var(--green)}
+.mname{font-size:16px;font-weight:700}.mhint{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:11px 7px;text-align:center}
+.card .emo{font-size:24px;margin-bottom:5px}
+.card .cname{font-size:11px;font-weight:500;line-height:1.3;margin-bottom:5px}
+.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px}
+.pb{background:var(--blue-light);color:var(--blue)}
+.fb{background:var(--orange-light);color:var(--orange)}
+.cb{background:var(--green-light);color:var(--green)}
+
+/* ACCORDION */
+.acc{margin-bottom:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.acc-head{width:100%;background:none;border:none;padding:15px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.acc-head-left{display:flex;align-items:center;gap:10px}
+.acc-ico{font-size:20px;flex-shrink:0}
+.acc-title{font-size:15px;font-weight:700;color:var(--text)}
+.acc-arrow{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+.acc-head.open .acc-arrow{transform:rotate(180deg)}
+.acc-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
+.acc-body.open{display:block}
+
+/* CONTENT BLOCKS */
+.info-block{margin-top:14px}
+.info-block p{font-size:14px;color:#3a3a5c;line-height:1.65;margin-bottom:10px}
+.info-block p:last-child{margin-bottom:0}
+.info-block strong{color:var(--text);font-weight:700}
+.highlight{background:var(--blue-light);border-left:3px solid var(--blue);border-radius:0 10px 10px 0;padding:10px 13px;margin-bottom:10px;font-size:13px;color:#3a3a5c;line-height:1.6}
+.highlight.orange{background:var(--orange-light);border-color:var(--orange)}
+.highlight.green{background:var(--green-light);border-color:var(--green)}
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;margin-bottom:10px}
+.tag{font-size:12px;padding:4px 10px;border-radius:20px;font-weight:600}
+.tag.avoid{background:#FEE8E8;color:#E05555}
+.tag.good{background:var(--green-light);color:#2a9a5a}
+.tag.neutral{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.plate-visual{background:linear-gradient(135deg,#f0f7ff,#e8fff1);border-radius:14px;padding:16px;margin-bottom:12px;text-align:center}
+.plate-row{display:flex;gap:8px;margin-top:10px}
+.plate-part{flex:1;border-radius:10px;padding:10px 6px;text-align:center;font-size:12px;font-weight:700}
+.plate-part .pico{font-size:20px;margin-bottom:4px}
+.plate-50{background:var(--green-light);color:#2a9a5a}
+.plate-25a{background:var(--blue-light);color:var(--blue)}
+.plate-25b{background:var(--orange-light);color:var(--orange)}
+.water-calc{background:var(--blue-light);border-radius:12px;padding:14px;margin-top:10px;text-align:center}
+.water-calc p{font-size:13px;color:var(--blue);font-weight:600}
+.water-calc .formula{font-size:22px;font-weight:800;color:var(--blue);margin:6px 0}
+.photo-placeholder{background:var(--bg);border:2px dashed var(--border);border-radius:14px;padding:28px 16px;text-align:center;margin:14px 0}
+.photo-placeholder .ph-ico{font-size:32px;margin-bottom:6px}
+.photo-placeholder p{font-size:12px;color:var(--muted)}
+
+/* RECIPE */
+.recipe-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px}
+.recipe-photo{background:var(--bg);border:2px dashed var(--border);height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.recipe-photo .ph-ico{font-size:36px}
+.recipe-photo p{font-size:12px;color:var(--muted)}
+.recipe-photo img{width:100%;height:100%;object-fit:cover}
+.recipe-body{padding:14px}
+.recipe-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px}
+.recipe-macros{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.recipe-macros .rm{font-size:11px;font-weight:700;border-radius:6px;padding:3px 8px}
+.recipe-macros .rmb{background:var(--blue-light);color:var(--blue)}
+.recipe-macros .rmf{background:var(--orange-light);color:var(--orange)}
+.recipe-macros .rmc{background:var(--green-light);color:var(--green)}
+.recipe-section{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;margin-top:10px}
+.recipe-body ul{padding-left:16px}
+.recipe-body ul li{font-size:13px;color:#3a3a5c;line-height:1.7}
+.recipe-cook{background:var(--bg);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;color:#3a3a5c;line-height:1.65}
+
+/* MEASUREMENTS */
+.meas{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px;margin-bottom:12px}
+.meas-title{font-size:14px;font-weight:700;margin-bottom:11px}
+.mrow{display:flex;gap:9px;margin-bottom:8px;align-items:flex-start}
+.mzone{font-size:13px;font-weight:600;color:var(--blue);min-width:58px;padding-top:1px}
+.mtip{font-size:13px;color:var(--muted);line-height:1.4}
+.mnote{font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:9px;margin-top:3px}
+
+/* FORM */
+.form{display:flex;flex-direction:column;gap:18px}
+.flabel{font-size:14px;font-weight:600;margin-bottom:6px}
+.wrow{display:flex;align-items:center;background:var(--card);border:1.5px solid var(--border);border-radius:13px;overflow:hidden;transition:border-color .15s}
+.wrow:focus-within{border-color:var(--blue)}
+.winput{flex:1;border:none;outline:none;padding:13px 15px;font-size:22px;font-weight:700;background:transparent;width:100%;color:var(--text)}
+.winput::placeholder{color:#CCC}
+.wunit{padding-right:15px;font-size:15px;font-weight:600;color:var(--muted)}
+.upload{background:var(--card);border:1.5px dashed var(--border);border-radius:13px;padding:20px 15px;text-align:center;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.upload:active{background:var(--bg);border-color:var(--blue)}
+.upload .uico{font-size:30px;margin-bottom:5px}
+.upload .utxt{font-size:14px;font-weight:600}
+.upload .uhint{font-size:12px;color:var(--muted);margin-top:2px}
+.preview{position:relative;display:none}
+.preview img{width:100%;border-radius:13px;max-height:190px;object-fit:cover;display:block}
+.rmbtn{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:12px;cursor:pointer}
+.sendbtn{width:100%;padding:15px;background:var(--blue);color:#fff;border:none;border-radius:13px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;-webkit-tap-highlight-color:transparent}
+.sendbtn:active{opacity:.85;transform:scale(.98)}
+.sendbtn:disabled{opacity:.5}
+.ok{background:var(--green-light);border:1.5px solid var(--green);border-radius:14px;padding:28px;text-align:center;display:none}
+.ok .oico{font-size:40px;margin-bottom:8px}
+.ok .otxt{font-size:16px;font-weight:700;color:var(--green)}
+
+/* CHAT */
+.chat-page{display:flex;flex-direction:column;height:100vh;padding-top:56px}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;padding-bottom:90px;padding-top:24px}
+.msg{max-width:82%;padding:11px 14px;border-radius:18px;font-size:14px;line-height:1.55;word-break:break-word}
+.msg.user{background:var(--blue);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
+.msg.bot{background:var(--card);color:var(--text);align-self:flex-start;border-bottom-left-radius:5px;border:1px solid var(--border)}
+.msg.bot.typing{color:var(--muted);font-style:italic}
+.chat-input-bar{position:fixed;bottom:16px;left:12px;right:12px;background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:8px 8px 8px 16px;display:flex;gap:8px;align-items:flex-end;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.chat-input{flex:1;border:none;outline:none;font-size:14px;resize:none;font-family:inherit;max-height:100px;background:transparent;color:var(--text)}
+.chat-send{width:36px;height:36px;border-radius:50%;background:var(--blue);border:none;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.chat-send:disabled{opacity:.4}
+.chat-welcome{text-align:center;padding:50px 10px 20px;color:var(--muted);font-size:13px}
+.chat-welcome .wico{font-size:40px;margin-bottom:8px}
+.chat-welcome strong{display:block;color:var(--text);font-size:15px;margin-bottom:4px}
+
+/* SECTION DIVIDER */
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:20px 0 10px}
+</style>
+</head>
+<body>
+
+<nav class="tabs">
+  <button class="tab-btn active" onclick="go('cheat',this)"><span class="ico">📋</span>Шпаргалка</button>
+  <button class="tab-btn" onclick="go('report',this)"><span class="ico">📤</span>Звіт</button>
+  <button class="tab-btn" onclick="go('chat',this)"><span class="ico">🤖</span>ІІ-чат</button>
+</nav>
+
+<!-- ===== TAB 1: ШПАРГАЛКА ===== -->
+<div id="cheat" class="page active">
+  <h1>Шпаргалка</h1>
+  <p class="sub">База знань від тренера</p>
+
+  <!-- Правило зважування -->
+  <div class="rules">
+    <span>🌾 Крупи — зважуй <b>сухими</b></span>
+    <div class="div"></div>
+    <span>🥩 М'ясо — <b>сирим</b></span>
+  </div>
+
+  <!-- БЖУ картки -->
+  <div class="section-label">Продукти по БЖВ</div>
+
+  <div class="macro p">
+    <div class="macro-head"><div class="letter">Б</div><div><div class="mname">Білки</div><div class="mhint">будують м'язи</div></div></div>
+    <div class="grid">
+      <div class="card"><div class="emo">🍗</div><div class="cname">Куряча грудка</div><span class="badge pb">31г Б / 100г</span></div>
+      <div class="card"><div class="emo">🥚</div><div class="cname">Яйце (1 шт)</div><span class="badge pb">6г Б / 1 шт</span></div>
+      <div class="card"><div class="emo">🐟</div><div class="cname">Тунець</div><span class="badge pb">30г Б / 100г</span></div>
+      <div class="card"><div class="emo">🧀</div><div class="cname">Сир 5%</div><span class="badge pb">18г Б / 100г</span></div>
+      <div class="card"><div class="emo">🥛</div><div class="cname">Грецький йогурт</div><span class="badge pb">10г Б / 100г</span></div>
+      <div class="card"><div class="emo">🐄</div><div class="cname">Яловичина</div><span class="badge pb">26г Б / 100г</span></div>
+    </div>
+  </div>
+
+  <div class="macro f">
+    <div class="macro-head"><div class="letter">Ж</div><div><div class="mname">Жири</div><div class="mhint">гормони і краса</div></div></div>
+    <div class="grid">
+      <div class="card"><div class="emo">🥑</div><div class="cname">Авокадо</div><span class="badge fb">15г Ж / 100г</span></div>
+      <div class="card"><div class="emo">🫒</div><div class="cname">Олія оливкова</div><span class="badge fb">14г Ж / 1 ст.л</span></div>
+      <div class="card"><div class="emo">🐟</div><div class="cname">Лосось</div><span class="badge fb">13г Ж / 100г</span></div>
+      <div class="card"><div class="emo">🥜</div><div class="cname">Мигдаль</div><span class="badge fb">14г Ж / 30г</span></div>
+    </div>
+  </div>
+
+  <div class="macro c">
+    <div class="macro-head"><div class="letter">В</div><div><div class="mname">Вуглеводи</div><div class="mhint">паливо для тренувань</div></div></div>
+    <div class="grid">
+      <div class="card"><div class="emo">🌾</div><div class="cname">Гречка (суха)</div><span class="badge cb">62г В / 100г</span></div>
+      <div class="card"><div class="emo">🍚</div><div class="cname">Рис (сухий)</div><span class="badge cb">75г В / 100г</span></div>
+      <div class="card"><div class="emo">🥣</div><div class="cname">Вівсянка (суха)</div><span class="badge cb">59г В / 100г</span></div>
+      <div class="card"><div class="emo">🍠</div><div class="cname">Батат</div><span class="badge cb">20г В / 100г</span></div>
+      <div class="card"><div class="emo">🍌</div><div class="cname">Банан</div><span class="badge cb">23г В / 100г</span></div>
+      <div class="card"><div class="emo">🫘</div><div class="cname">Сочевиця</div><span class="badge cb">57г В / 100г</span></div>
+    </div>
+  </div>
+
+  <!-- Заміри тіла -->
+  <div class="section-label">Заміри тіла</div>
+  <div class="meas">
+    <div class="meas-title">📏 Як правильно робити заміри</div>
+    <div class="mrow"><span class="mzone">Груди</span><span class="mtip">На рівні сосків, стрічка паралельна підлозі</span></div>
+    <div class="mrow"><span class="mzone">Талія</span><span class="mtip">На 2 см вище пупка, не втягуй живіт</span></div>
+    <div class="mrow"><span class="mzone">Стегна</span><span class="mtip">У найширшій частині, ноги разом</span></div>
+    <div class="mnote">⏰ Заміри — вранці, натщесерце, раз на тиждень</div>
+  </div>
+
+  <!-- АКОРДЕОНИ -->
+  <div class="section-label">База від тренера</div>
+
+  <!-- Акордеон 1: Режим харчування -->
+  <div class="acc">
+    <button class="acc-head" onclick="toggle(this)">
+      <div class="acc-head-left"><span class="acc-ico">🕐</span><span class="acc-title">Режим харчування</span></div>
+      <span class="acc-arrow">▼</span>
+    </button>
+    <div class="acc-body">
+      <div class="info-block">
+        <div class="highlight"><strong>3 прийоми їжі</strong> — сніданок, обід, вечеря у чітко визначений час. Перекуси — лише у крайніх випадках.</div>
+        <p>Наприклад: <strong>сніданок 9:00 · обід 14:00 · вечеря 18:00</strong></p>
+        <p>Між прийомами — мінімум <strong>3 години</strong>. Сніданок — у перші 1–1,5 години після пробудження. Останній прийом — за 3 години до сну.</p>
+        <div class="highlight orange">❌ Виключити: одноразове та п'ятиразове харчування, інтервальне голодування.</div>
+        <p>Усі прийоми їжі мають містити <strong>білки + жири + складні вуглеводи + клітковину</strong> у вигляді овочів та зелені.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Акордеон 2: Здорова тарілка -->
+  <div class="acc">
+    <button class="acc-head" onclick="toggle(this)">
+      <div class="acc-head-left"><span class="acc-ico">🍽️</span><span class="acc-title">Вигляд здорової тарілки</span></div>
+      <span class="acc-arrow">▼</span>
+    </button>
+    <div class="acc-body">
+      <div class="info-block">
+        <div class="plate-visual">
+          <p style="font-size:13px;font-weight:700;margin-bottom:4px">Тарілка 21–22 см</p>
+          <div class="plate-row">
+            <div class="plate-part plate-50"><div class="pico">🥗</div>½ тарілки<br>Овочі та зелень</div>
+            <div style="display:flex;flex-direction:column;gap:8px;flex:1">
+              <div class="plate-part plate-25a"><div class="pico">🌾</div>¼ Крупи</div>
+              <div class="plate-part plate-25b"><div class="pico">🍗</div>¼ Білки+Жири</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Місце для фото тарілки -->
+        <img src="./scheme.jpg" style="width:100%;border-radius:14px;margin:14px 0;" alt="Схема"/>
+
+        <p><strong>🌅 Сніданок</strong> — білково-жировий: яйця, риба, авокадо, горіхи, сир. Важливо виключити солодкі сніданки з кашею та фруктами.</p>
+        <p><strong>☀️ Обід</strong> — повноцінний: крупа/бобові/паста + овочі + зелень + риба/птиця. Найситніший прийом дня.</p>
+        <p><strong>🌙 Вечеря</strong> — схожа на обід, але краще обрати легший білок: риба або морепродукти. За 3–4 години до сну.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Акордеон 3: Продукти -->
+  <div class="acc">
+    <button class="acc-head" onclick="toggle(this)">
+      <div class="acc-head-left"><span class="acc-ico">🛒</span><span class="acc-title">Що їсти і що уникати</span></div>
+      <span class="acc-arrow">▼</span>
+    </button>
+    <div class="acc-body">
+      <div class="info-block">
+        <p style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px">✅ Хороші крупи:</p>
+        <div class="tag-row">
+          <span class="tag good">Гречка</span><span class="tag good">Вівсянка ціла</span><span class="tag good">Кіноа</span><span class="tag good">Чорний рис</span><span class="tag good">Бурий рис</span><span class="tag good">Квасоля</span><span class="tag good">Нут</span><span class="tag good">Сочевиця</span><span class="tag good">Маш</span><span class="tag good">Макарони тв. сорти</span>
+        </div>
+        <p style="font-size:13px;font-weight:700;color:var(--orange);margin-bottom:6px;margin-top:10px">⚠️ Жири — не бійся їх їсти:</p>
+        <div class="highlight orange">Якісний жир — це твоя краса (шкіра, волосся, нігті). <strong>Оливкова олія або вершкове масло 82%</strong> — з кожним прийомом їжі.</div>
+        <p style="font-size:13px;font-weight:700;color:#E05555;margin-bottom:6px">❌ Уникати:</p>
+        <div class="tag-row">
+          <span class="tag avoid">Мед</span><span class="tag avoid">Солодощі</span><span class="tag avoid">Соки</span><span class="tag avoid">Газовані напої</span><span class="tag avoid">Ковбаси</span><span class="tag avoid">Сосиски</span><span class="tag avoid">Напівфабрикати</span><span class="tag avoid">Чіпси</span><span class="tag avoid">Білий хліб</span><span class="tag avoid">Гранола</span><span class="tag avoid">Пластівці</span><span class="tag avoid">Енергетики</span>
+        </div>
+        <p style="margin-top:10px">🍓 <strong>Ягоди</strong> — щодня! Чорниця, смородина, лохина, малина — перевага несолодким.</p>
+        <p>🥦 <strong>Овочі</strong> — їж всі! Свіжі та термооброблені. Картоплю, батат, гарбуз — відносимо до складних вуглеводів.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Акордеон 4: Вода -->
+  <div class="acc">
+    <button class="acc-head" onclick="toggle(this)">
+      <div class="acc-head-left"><span class="acc-ico">💧</span><span class="acc-title">Вода — твоя норма</span></div>
+      <span class="acc-arrow">▼</span>
+    </button>
+    <div class="acc-body">
+      <div class="info-block">
+        <div class="highlight">Без води — не худнеться. Пий протягом усього дня.</div>
+        <div class="water-calc">
+          <p>Твоя формула:</p>
+          <div class="formula">вага ÷ 30 = літри</div>
+          <p>Наприклад: 60 кг ÷ 30 = <strong>2 л чистої води</strong><br><span style="font-size:11px;opacity:.7">чай та кава не рахуються</span></p>
+        </div>
+        <p style="margin-top:12px">Купи красиву пляшечку, яку будеш постійно носити з собою 🫙</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Акордеон 5: Кава -->
+  <div class="acc">
+    <button class="acc-head" onclick="toggle(this)">
+      <div class="acc-head-left"><span class="acc-ico">☕️</span><span class="acc-title">Кава — правила</span></div>
+      <span class="acc-arrow">▼</span>
+    </button>
+    <div class="acc-body">
+      <div class="info-block">
+        <div class="highlight green">Якісна кава без цукру та молока (еспресо/американо) — п'ємо через 20–40 хв після їжі.</div>
+        <p><strong>Не більше 2 чашок на день</strong> — після сніданку та обіду.</p>
+        <p>Кава з молоком — лише як десерт після їжі, не самостійно.</p>
+        <div class="highlight orange">❌ Кава на голодний шлунок — виключити!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Акордеон 6: Правило 80/20 -->
+  <div class="acc">
+    <button class="acc-head" onclick="toggle(this)">
+      <div class="acc-head-left"><span class="acc-ico">🎯</span><span class="acc-title">Правило 80/20</span></div>
+      <span class="acc-arrow">▼</span>
+    </button>
+    <div class="acc-body">
+      <div class="info-block">
+        <div class="highlight green"><strong>80% часу</strong> — здорове харчування за планом. <strong>20%</strong> — живеш реальним життям.</div>
+        <p>2 прийоми на тиждень можуть бути вільними (саме прийоми, а не цілі дні).</p>
+        <p>Хочеш суші/піцу/кебаб? <strong>Плануй заздалегідь:</strong> зроби гарний сніданок з зеленню, а один прийом зроби смачним. Головне — не переїдати та жувати повільно.</p>
+        <div class="highlight">Ситість приходить через 20 хв від початку їжі. Жуй кожен шматок 30 разів 🙂</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- РЕЦЕПТИ -->
+  <div class="section-label">Рецепти білкових сніданків</div>
+
+  <!-- Рецепт 1: Білкові вафлі -->
+  <div class="recipe-card">
+    <div class="recipe-photo">
+      <img src="./waffles.jpg" alt="Білкові вафлі"/>
+    </div>
+    <div class="recipe-body">
+      <div class="recipe-title">Білкові вафлі</div>
+      <div class="recipe-macros">
+        <span class="rm rmb">Б: 56г</span>
+        <span class="rm rmf">Ж: 9г</span>
+        <span class="rm rmc">В: 50г</span>
+      </div>
+      <div class="recipe-section">Склад</div>
+      <ul>
+        <li>180 г сиру в брикеті (0–5% жирності)</li>
+        <li>2 курячих яйця</li>
+        <li>60 г рисового борошна</li>
+        <li>½ пакетика розпушувача</li>
+        <li>ванілін за смаком</li>
+        <li>цукрозамінник за смаком</li>
+      </ul>
+      <div class="recipe-cook">🍰 <strong>Приготування:</strong> За допомогою виделки змішайте всі інгредієнти. Почекайте 5 хвилин поки почнеться реакція розпушувача. Нагрійте вафельницю, смажте з краплею олії. Подавайте з ягодами, грецьким йогуртом або згущенкою без цукру.</div>
+    </div>
+  </div>
+
+  <!-- Рецепт 2: Білковий рулет -->
+  <div class="recipe-card">
+    <div class="recipe-photo">
+      <img src="./roulette.jpg" alt="Білковий рулет"/>
+    </div>
+    <div class="recipe-body">
+      <div class="recipe-title">Білковий рулет</div>
+      <div class="recipe-macros">
+        <span class="rm rmb">Б: 60г</span>
+        <span class="rm rmf">Ж: 3г</span>
+        <span class="rm rmc">В: 32г</span>
+      </div>
+      <div class="recipe-section">Тісто</div>
+      <ul>
+        <li>4 яєчних білки</li>
+        <li>20 г кукурудзяного крохмалю</li>
+        <li>сік половини лимону</li>
+        <li>½ пакетика розпушувача</li>
+        <li>ванілін + цукрозамінник</li>
+      </ul>
+      <div class="recipe-section">Начинка</div>
+      <ul>
+        <li>150 г сиру в брикеті (0–5%)</li>
+        <li>90 г м'якого сиру 4%</li>
+        <li>ванілін + цукрозамінник</li>
+        <li>сік половини лимону</li>
+        <li>50 г полуниці або іншої ягоди</li>
+      </ul>
+      <div class="recipe-cook">🍰 <strong>Приготування:</strong> Збийте білки з цукрозамінником до стійких піків, додаючи сік лимону. Додайте крохмаль, розпушувач, ванілін. Викладіть на пергамент і запікайте при 180° 7–10 хвилин. Поки готується — блендеруйте крем. Намастіть, викладіть ягоди, згорніть рулетом.</div>
+    </div>
+  </div>
+
+  <!-- Рецепт 3: Кукурудзяний млинець -->
+  <div class="recipe-card">
+    <div class="recipe-photo">
+      <img src="./pie.jpg" alt="Кукурудзяний млинець"/>
+    </div>
+    <div class="recipe-body">
+      <div class="recipe-title">Кукурудзяний млинець</div>
+      <div class="recipe-macros">
+        <span class="rm rmb">Б: 45г</span>
+        <span class="rm rmf">Ж: 10г</span>
+        <span class="rm rmc">В: 50г</span>
+      </div>
+      <div class="recipe-section">Тісто</div>
+      <ul>
+        <li>120 г яєчного білку</li>
+        <li>2 курячих яйця</li>
+        <li>40 г кукурудзяного борошна</li>
+        <li>10 г протеїну (сироватковий ізолят)</li>
+        <li>40 г сиру (0–5%)</li>
+      </ul>
+      <div class="recipe-section">Начинка</div>
+      <ul>
+        <li>15 г арахісової пасти без цукру</li>
+        <li>50 г банану</li>
+      </ul>
+      <div class="recipe-cook">🍰 <strong>Приготування:</strong> Всі інгредієнти для тіста блендеруйте і вилийте на антипригарну сковорідку. Смажте на маленькому вогні під кришкою з двох сторін. Намастіть арахісовою пастою, викладіть банан.</div>
+    </div>
+  </div>
+
+  <!-- Рецепт 4: Сирники -->
+  <div class="recipe-card">
+    <div class="recipe-photo">
+      <img src="./syrniki.jpg" alt="Сирники"/>
+    </div>
+    <div class="recipe-body">
+      <div class="recipe-title">Сирники</div>
+      <div class="recipe-macros">
+        <span class="rm rmb">Б: 50г</span>
+        <span class="rm rmf">Ж: 12г</span>
+        <span class="rm rmc">В: 52г</span>
+      </div>
+      <div class="recipe-section">Склад</div>
+      <ul>
+        <li>180 г сиру в брикеті (0–5%)</li>
+        <li>1 куряче яйце</li>
+        <li>60 г рисового борошна</li>
+        <li>цукрозамінник + ванілін</li>
+        <li>1 ч.л. розпушувача</li>
+      </ul>
+      <div class="recipe-cook">🍰 <strong>Приготування:</strong> Змішайте всі інгредієнти виделкою. Почекайте 5 хвилин. Скатайте ковбаску, поріжте на порції, надайте форму сирників. Смажте без кришки до рум'яної скоринки, переверніть і накрийте кришкою — так не розваляться.</div>
+    </div>
+  </div>
+
+  <!-- Рецепт 5: Білкова вівсянка -->
+  <div class="recipe-card">
+    <div class="recipe-photo">
+      <img src="./porridge.jpg" alt="Білкова вівсянка"/>
+    </div>
+    <div class="recipe-body">
+      <div class="recipe-title">Білкова вівсянка</div>
+      <div class="recipe-macros">
+        <span class="rm rmb">Б: 25г</span>
+        <span class="rm rmf">Ж: 12г</span>
+        <span class="rm rmc">В: 50г</span>
+      </div>
+      <div class="recipe-section">Склад</div>
+      <ul>
+        <li>60 г вівсянки довгого варіння</li>
+        <li>100 г яєчного білку</li>
+        <li>15 г арахісової пасти</li>
+        <li>ягоди</li>
+        <li>кубик шоколаду</li>
+      </ul>
+      <div class="recipe-cook">🍰 <strong>Приготування:</strong> Варіть вівсянку до готовності. Паралельно збийте білок. За 3 хвилини до готовності влийте білок і постійно помішуйте. Варіть ще 2–3 хвилини. Додайте арахісову пасту, ягоди, шоколад.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== TAB 2: ЗВІТ ===== -->
+<div id="report" class="page">
+  <h1>Щоденний звіт</h1>
+  <p class="sub">Заповни за 1 хвилину</p>
+
+  <div class="form" id="reportForm">
+    <div>
+      <div class="flabel">Поточна вага</div>
+      <div class="wrow">
+        <input class="winput" id="wt" type="number" placeholder="72.5" step="0.1" min="30" max="300"/>
+        <span class="wunit">кг</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="flabel">Скриншот з FatSecret</div>
+      <input type="file" id="fsFile" accept="image/*" style="display:none" onchange="preview(this,'fsBox','fsPrev','fsImg')"/>
+      <div class="upload" id="fsBox" onclick="document.getElementById('fsFile').click()">
+        <div class="uico">📊</div>
+        <div class="utxt">Натисни, щоб завантажити</div>
+        <div class="uhint">Скриншот щоденника харчування</div>
+      </div>
+      <div class="preview" id="fsPrev">
+        <img id="fsImg"/><button class="rmbtn" onclick="rm('fsFile','fsBox','fsPrev')">✕ Видалити</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="flabel">Фото тарілки</div>
+      <input type="file" id="fpFile" accept="image/*" style="display:none" onchange="preview(this,'fpBox','fpPrev','fpImg')"/>
+      <div class="upload" id="fpBox" onclick="document.getElementById('fpFile').click()">
+        <div class="uico">🍽️</div>
+        <div class="utxt">Натисни, щоб завантажити</div>
+        <div class="uhint">Фото будь-якого прийому їжі за день</div>
+      </div>
+      <div class="preview" id="fpPrev">
+        <img id="fpImg"/><button class="rmbtn" onclick="rm('fpFile','fpBox','fpPrev')">✕ Видалити</button>
+      </div>
+    </div>
+
+    <button class="sendbtn" id="sendBtn" onclick="send()">Надіслати звіт</button>
+  </div>
+
+  <div class="ok" id="okBanner">
+    <div class="oico">✅</div>
+    <div class="otxt">Звіт надіслано тренеру!</div>
+  </div>
+</div>
+
+<!-- ===== TAB 3: ІІ-ЧАТ ===== -->
+<div id="chat" class="page" style="padding:0">
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-welcome">
+      <div class="wico">&#129367;</div>
+      <strong>II-помічник з харчування</strong>
+      Запитай мене про БЖУ, продукти або що з'їсти — відповім коротко і по справі
+    </div>
+  </div>
+  <div class="chat-input-bar">
+    <textarea class="chat-input" id="chatInput" placeholder="Наприклад: як добрати 30г білка?" rows="1" oninput="autoResize(this)" onkeydown="chatKey(event)"></textarea>
+    <button class="chat-send" id="chatSend" onclick="chatSend()">&#10148;</button>
+  </div>
+</div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if(tg){tg.ready();tg.expand();}
+
+function go(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function toggle(btn){
+  const body = btn.nextElementSibling;
+  btn.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+function preview(input, boxId, prevId, imgId){
+  const file = input.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    document.getElementById(imgId).src = e.target.result;
+    document.getElementById(prevId).style.display = 'block';
+    document.getElementById(boxId).style.display = 'none';
+  };
+  r.readAsDataURL(file);
+}
+
+function rm(inputId, boxId, prevId){
+  document.getElementById(inputId).value='';
+  document.getElementById(prevId).style.display='none';
+  document.getElementById(boxId).style.display='block';
+}
+
+// ===== II-ЧАТ =====
+const SERVER_URL = 'https://fitreport-server.onrender.com';
+
+const CHAT_SYSTEM = `Ти — персональний помічник з харчування від фітнес-тренера.
+Правила:
+- Відповідай КОРОТКО — максимум 3-4 речення. Без зайвої води.
+- Будь конкретним: якщо питають про білок — дай конкретні продукти з цифрами.
+- Тон — як розумний друг, не як підручник. Можна додати емодзі але без фанатизму.
+- Мова — українська.
+- Якщо питання не про харчування — м'яко поверни до теми їжі.
+- Ніколи не пиши довгі списки з 10+ пунктів. Максимум 3-4 варіанти.`;
+
+let chatHistory = [];
+
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,100)+'px';
+}
+
+function chatKey(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();chatSend();}
+}
+
+function addMsg(text,role){
+  const el=document.createElement('div');
+  el.className='msg '+role;
+  el.textContent=text;
+  const msgs=document.getElementById('chatMessages');
+  msgs.appendChild(el);
+  msgs.scrollTop=msgs.scrollHeight;
+  return el;
+}
+
+async function chatSend(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();
+  if(!text)return;
+  const sendBtn=document.getElementById('chatSend');
+  input.value='';input.style.height='auto';
+  sendBtn.disabled=true;
+  addMsg(text,'user');
+  chatHistory.push({role:'user',content:text});
+  const typing=addMsg('друкує...','bot typing');
+  try{
+    const res=await fetch(SERVER_URL+'/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:chatHistory,system:CHAT_SYSTEM})
+    });
+    const data=await res.json();
+    const reply=data.reply||'Помилка. Спробуй ще раз.';
+    chatHistory.push({role:'assistant',content:reply});
+    typing.textContent=reply;
+    typing.classList.remove('typing');
+  }catch(e){
+    typing.textContent='Помилка з\'єднання. Спробуй ще раз.';
+  }
+  sendBtn.disabled=false;
+}
+
+async function send(){
+  const weight = document.getElementById('wt').value;
+  const fsFile = document.getElementById('fsFile').files[0];
+  const fpFile = document.getElementById('fpFile').files[0];
+  if(!weight) return alert('Введи свою вагу');
+  if(!fsFile) return alert('Завантаж скриншот FatSecret');
+  if(!fpFile) return alert('Завантаж фото тарілки');
+
+  const btn = document.getElementById('sendBtn');
+  btn.textContent = '⏳ Надсилаємо...';
+  btn.disabled = true;
+
+  const fd = new FormData();
+  fd.append('weight', weight);
+  fd.append('userName', tg?.initDataUnsafe?.user?.first_name || 'Клієнт');
+  fd.append('fatsecret', fsFile);
+  fd.append('foodPhoto', fpFile);
+
+  try {
+   const res = await fetch('https://fitreport-server-1.onrender.com/report', {method:'POST', body:fd});
+    if(res.ok){
+      document.getElementById('reportForm').style.display='none';
+      document.getElementById('okBanner').style.display='block';
+      tg?.HapticFeedback?.notificationOccurred('success');
+    } else throw new Error();
+  } catch {
+    alert('Помилка. Спробуй ще раз.');
+    btn.textContent = 'Надіслати звіт';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
